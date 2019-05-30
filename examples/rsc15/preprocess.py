@@ -10,12 +10,13 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 import os
+import random
 
 #PATH_TO_ORIGINAL_DATA = '/path/to/clicks/dat/file/'
 #PATH_TO_PROCESSED_DATA = '/path/to/store/processed/data/'
 PATH_TO_ORIGINAL_DATA = 'D:\\FusztiG\\Elte\\MSc\\Szakdolgozat\\data\\processed\\' #yoochoose-data\\'
 PATH_TO_PROCESSED_DATA = 'D:\\FusztiG\\Elte\\MSc\\Szakdolgozat\\data\\processed\\'
-
+random.seed(42)
 parser = argparse.ArgumentParser(
     description='Example with long option names',
 )
@@ -43,6 +44,8 @@ item_supports = data.groupby('ItemId').size()
 data = data[np.in1d(data.ItemId, item_supports[item_supports>=5].index)]
 session_lengths = data.groupby('SessionId').size()
 data = data[np.in1d(data.SessionId, session_lengths[session_lengths>=2].index)]
+session_lengths = data.groupby('SessionId').size()
+print(session_lengths)
 #print('session_lengths = {}\nitem_supports = {}\n'.format(session_lengths, item_supports))
 
 tmax = data.Time.max()
@@ -50,11 +53,21 @@ tmin = data.Time.min()
 print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
 session_max_times = data.groupby('SessionId').Time.max()
 split_value = int((tmax-tmin)*0.3)
-#print('-------------------------')
-#print(session_max_times)
-#print('-------------------------')
-session_train = session_max_times[session_max_times < tmax-split_value].index
-session_test = session_max_times[session_max_times >= tmax-split_value].index
+session_index_list = session_lengths.index.tolist()
+random.shuffle(session_index_list)
+#session_prob_list = session_lengths.values.tolist()
+K = int(len(session_index_list)*0.7)
+session_train = session_index_list[0:K]
+session_test = session_index_list[K:]
+#session_train = random.choices(session_index_list, weights=session_prob_list, k=K)
+print('-------------------------')
+print(session_max_times.index)
+print(session_max_times[[5, 9, 11]].index)
+print(session_lengths[[5, 9, 11]].values)
+#print(session_max_times[-1])
+print('-------------------------')
+#session_train = session_max_times[session_max_times < tmax-split_value].index
+#session_test = session_max_times[session_max_times >= tmax-split_value].index
 train = data[np.in1d(data.SessionId, session_train)]
 test = data[np.in1d(data.SessionId, session_test)]
 test = test[np.in1d(test.ItemId, train.ItemId)]
@@ -70,8 +83,17 @@ tmin = train.Time.min()
 print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
 session_max_times = train.groupby('SessionId').Time.max()
 split_value = int((tmax-tmin)*0.3)
-session_train = session_max_times[session_max_times < tmax-split_value].index
-session_valid = session_max_times[session_max_times >= tmax-split_value].index
+
+session_lengths = train.groupby('SessionId').size()
+session_index_list = session_lengths.index.tolist()
+random.shuffle(session_index_list)
+#session_prob_list = session_lengths.values.tolist()
+K = int(len(session_index_list)*0.7)
+session_train = session_index_list[0:K]
+session_valid = session_index_list[K:]
+
+#session_train = session_max_times[session_max_times < tmax-split_value].index
+#session_valid = session_max_times[session_max_times >= tmax-split_value].index
 train_tr = train[np.in1d(train.SessionId, session_train)]
 valid = train[np.in1d(train.SessionId, session_valid)]
 valid = valid[np.in1d(valid.ItemId, train_tr.ItemId)]
