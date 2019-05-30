@@ -25,6 +25,7 @@ parser.add_argument('--input', action="store",
                     dest="inp")
 parser.add_argument('--output', action="store",
                     dest="outp")
+parser.add_argument('--split', action='store', dest='split_value', default=0.7, type=float)
 args=parser.parse_args()
 
 PATH_TO_ORIGINAL_DATA=args.inp
@@ -45,27 +46,27 @@ data = data[np.in1d(data.ItemId, item_supports[item_supports>=5].index)]
 session_lengths = data.groupby('SessionId').size()
 data = data[np.in1d(data.SessionId, session_lengths[session_lengths>=2].index)]
 session_lengths = data.groupby('SessionId').size()
-print(session_lengths)
+# print(session_lengths)
 #print('session_lengths = {}\nitem_supports = {}\n'.format(session_lengths, item_supports))
 
-tmax = data.Time.max()
-tmin = data.Time.min()
-print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
-session_max_times = data.groupby('SessionId').Time.max()
-split_value = int((tmax-tmin)*0.3)
+# tmax = data.Time.max()
+# tmin = data.Time.min()
+# print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
+# session_max_times = data.groupby('SessionId').Time.max()
+# split_value = int((tmax-tmin)*0.3)
 session_index_list = session_lengths.index.tolist()
 random.shuffle(session_index_list)
 #session_prob_list = session_lengths.values.tolist()
-K = int(len(session_index_list)*0.7)
+K = int(len(session_index_list)*args.split_value)
 session_train = session_index_list[0:K]
 session_test = session_index_list[K:]
 #session_train = random.choices(session_index_list, weights=session_prob_list, k=K)
-print('-------------------------')
-print(session_max_times.index)
-print(session_max_times[[5, 9, 11]].index)
-print(session_lengths[[5, 9, 11]].values)
-#print(session_max_times[-1])
-print('-------------------------')
+# print('-------------------------')
+# print(session_max_times.index)
+# print(session_max_times[[5, 9, 11]].index)
+# print(session_lengths[[5, 9, 11]].values)
+# #print(session_max_times[-1])
+# print('-------------------------')
 #session_train = session_max_times[session_max_times < tmax-split_value].index
 #session_test = session_max_times[session_max_times >= tmax-split_value].index
 train = data[np.in1d(data.SessionId, session_train)]
@@ -78,17 +79,17 @@ train.to_csv(os.path.join(PATH_TO_PROCESSED_DATA, 'rsc15_train_full.txt'), sep='
 print('Test set\n\tEvents: {}\n\tSessions: {}\n\tItems: {}'.format(len(test), test.SessionId.nunique(), test.ItemId.nunique()))
 test.to_csv(os.path.join(PATH_TO_PROCESSED_DATA,'rsc15_test.txt'), sep='\t', index=False)
 
-tmax = train.Time.max()
-tmin = train.Time.min()
-print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
-session_max_times = train.groupby('SessionId').Time.max()
-split_value = int((tmax-tmin)*0.3)
+# tmax = train.Time.max()
+# tmin = train.Time.min()
+# print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
+# session_max_times = train.groupby('SessionId').Time.max()
+# split_value = int((tmax-tmin)*0.3)
 
 session_lengths = train.groupby('SessionId').size()
 session_index_list = session_lengths.index.tolist()
 random.shuffle(session_index_list)
 #session_prob_list = session_lengths.values.tolist()
-K = int(len(session_index_list)*0.7)
+K = int(len(session_index_list)*args.split_value)
 session_train = session_index_list[0:K]
 session_valid = session_index_list[K:]
 
