@@ -62,7 +62,7 @@ if __name__ == '__main__':
         E = np.array([0])
     else:
         emb = -1
-        f=open(args.embedding_file, 'r')
+        f=open(args.embedding_file, 'rb')
         E = np.load(f)
         f.close()
 
