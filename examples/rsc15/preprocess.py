@@ -43,16 +43,16 @@ item_supports = data.groupby('ItemId').size()
 data = data[np.in1d(data.ItemId, item_supports[item_supports>=5].index)]
 session_lengths = data.groupby('SessionId').size()
 data = data[np.in1d(data.SessionId, session_lengths[session_lengths>=2].index)]
-print('session_lengths = {}\nitem_supports = {}\n'.format(session_lengths, item_supports))
+#print('session_lengths = {}\nitem_supports = {}\n'.format(session_lengths, item_supports))
 
 tmax = data.Time.max()
 tmin = data.Time.min()
 print('tmax={}\ntmin={}\ntmax-tmin= {}'.format(tmax, tmin,tmax-tmin))
 session_max_times = data.groupby('SessionId').Time.max()
 split_value = int((tmax-tmin)*0.3)
-print('-------------------------')
-print(session_max_times)
-print('-------------------------')
+#print('-------------------------')
+#print(session_max_times)
+#print('-------------------------')
 session_train = session_max_times[session_max_times < tmax-split_value].index
 session_test = session_max_times[session_max_times >= tmax-split_value].index
 train = data[np.in1d(data.SessionId, session_train)]
