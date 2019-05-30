@@ -6,6 +6,7 @@ Created on Wed Apr  6 18:14:46 2016
 """
 
 import sys
+import argparse
 sys.path.append('../..')
 
 import numpy as np
@@ -13,10 +14,22 @@ import pandas as pd
 import gru4rec
 import evaluation
 
-PATH_TO_TRAIN = '/db_vol/hb_work/rnn/data/processed/recsys_challenge_train_full.txt'
-PATH_TO_TEST = '/db_vol/hb_work/rnn/data/processed/recsys_challenge_test.txt'
+#PATH_TO_TRAIN = '/db_vol/hb_work/rnn/data/processed/recsys_challenge_train_full.txt'
+#PATH_TO_TEST = '/db_vol/hb_work/rnn/data/processed/recsys_challenge_test.txt'
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Example with long option names',
+    )
+
+    parser.add_argument('--train', action="store",
+                        dest="train")
+    parser.add_argument('--test', action="store",
+                        dest="test")
+    args=parser.parse_args()
+
+    PATH_TO_TRAIN=args.train
+    PATH_TO_TEST=args.test
     data = pd.read_csv(PATH_TO_TRAIN, sep='\t', dtype={'ItemId':np.int64})
     valid = pd.read_csv(PATH_TO_TEST, sep='\t', dtype={'ItemId':np.int64})
     
