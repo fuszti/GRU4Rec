@@ -250,6 +250,7 @@ class GRU4Rec:
         offset_sessions[1:] = data.groupby(self.session_key).size().cumsum()
         np.random.seed(42)
         self.Wx, self.Wh, self.Wrz, self.Bh, self.H = [], [], [], [], []
+        # init of embedding [fuszti]
         if self.constrained_embedding:
             n_features = self.layers[-1]
         elif self.embedding:
@@ -297,12 +298,12 @@ class GRU4Rec:
             acc_s = acc[sample_idx]
             meang_s = meang[sample_idx]
             countt_s = countt[sample_idx]
-#            acc_new = v3 * acc_s + v4 * (grad**2) #Faster, but inaccurate when an index occurs multiple times
-#            updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
+       #     acc_new = v3 * acc_s + v4 * (grad**2) #Faster, but inaccurate when an index occurs multiple times
+        #    updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
             updates[acc] = T.inc_subtensor(T.set_subtensor(acc_s, acc_s * v3)[sample_idx], v4 * (grad**2)) #Slower, but accurate when an index occurs multiple times
             acc_new = updates[acc][sample_idx] #Slower, but accurate when an index occurs multiple times
-#            meang_new = v1 * meang_s + v2 * grad
-#            updates[meang] = T.set_subtensor(meang_s, meang_new) #Faster, but inaccurate when an index occurs multiple times
+       #     meang_new = v1 * meang_s + v2 * grad
+        #    updates[meang] = T.set_subtensor(meang_s, meang_new) #Faster, but inaccurate when an index occurs multiple times
             updates[meang] = T.inc_subtensor(T.set_subtensor(meang_s, meang_s * v1)[sample_idx], v2 * (grad**2)) #Slower, but accurate when an index occurs multiple times
             meang_new = updates[meang][sample_idx] #Slower, but accurate when an index occurs multiple times
             countt_new = countt_s + 1.0
@@ -332,13 +333,13 @@ class GRU4Rec:
             updates[upd] = upd_new
         else:
             acc_s = acc[sample_idx]
-#            acc_new = v1 * acc_s + v2 * (grad**2) #Faster, but inaccurate when an index occurs multiple times
-#            updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
+        #    acc_new = v1 * acc_s + v2 * (grad**2) #Faster, but inaccurate when an index occurs multiple times
+        #    updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
             updates[acc] = T.inc_subtensor(T.set_subtensor(acc_s, acc_s * v1)[sample_idx], v2 * (grad**2)) #Slower, but accurate when an index occurs multiple times
             acc_new = updates[acc][sample_idx] #Slower, but accurate when an index occurs multiple times
             upd_s = upd[sample_idx]
             grad_scaling = (upd_s + epsilon) / (acc_new + epsilon)
-#            updates[upd] = T.set_subtensor(upd_s, v1 * upd_s + v2 * grad_scaling * (grad**2)) #Faster, but inaccurate when an index occurs multiple times
+        #    updates[upd] = T.set_subtensor(upd_s, v1 * upd_s + v2 * grad_scaling * (grad**2)) #Faster, but inaccurate when an index occurs multiple times
             updates[upd] = T.inc_subtensor(T.set_subtensor(upd_s, upd_s * v1)[sample_idx], v2 * grad_scaling * (grad**2)) #Slower, but accurate when an index occurs multiple times
         gradient_scaling = T.cast(T.sqrt(grad_scaling), theano.config.floatX)
         if self.learning_rate != 1.0:
@@ -354,8 +355,8 @@ class GRU4Rec:
             updates[acc] = acc_new
         else:
             acc_s = acc[sample_idx]
-#            acc_new = v1 * acc_s + v2 * grad ** 2 #Faster, but inaccurate when an index occurs multiple times
-#            updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
+        #    acc_new = v1 * acc_s + v2 * grad ** 2 #Faster, but inaccurate when an index occurs multiple times
+        #    updates[acc] = T.set_subtensor(acc_s, acc_new) #Faster, but inaccurate when an index occurs multiple times
             updates[acc] = T.inc_subtensor(T.set_subtensor(acc_s, acc_s * v1)[sample_idx], v2 * grad ** 2) #Slower, but accurate when an index occurs multiple times
             acc_new = updates[acc][sample_idx] #Slower, but accurate when an index occurs multiple times
         gradient_scaling = T.cast(T.sqrt(acc_new + epsilon), theano.config.floatX)
@@ -370,46 +371,48 @@ class GRU4Rec:
             sgrads = [T.switch(T.ge(norm, self.grad_cap), g*self.grad_cap/norm, g) for g in sgrads]
         for p_list, g_list in zip(params, grads):
             for p, g in zip(p_list, g_list):
-                if self.adapt == 'adagrad':
-                    g = self.adagrad(p, g, updates)
-                elif self.adapt == 'rmsprop':
-                    g = self.rmsprop(p, g, updates)
-                elif self.adapt == 'adadelta':
-                    g = self.adadelta(p, g, updates)
-                elif self.adapt == 'adam':
-                    g = self.adam(p, g, updates)
-                if self.momentum > 0:
-                    velocity = theano.shared(p.get_value(borrow=False) * 0., borrow=True)
-                    velocity2 = self.momentum * velocity - np.float32(self.learning_rate) * (g + self.lmbd * p)
-                    updates[velocity] = velocity2
-                    updates[p] = p + velocity2
-                else:
-                    updates[p] = p * np.float32(1.0 - self.learning_rate * self.lmbd) - np.float32(self.learning_rate) * g
+                if p.name != 'E':
+                    if self.adapt == 'adagrad':
+                        g = self.adagrad(p, g, updates)
+                    elif self.adapt == 'rmsprop':
+                        g = self.rmsprop(p, g, updates)
+                    elif self.adapt == 'adadelta':
+                        g = self.adadelta(p, g, updates)
+                    elif self.adapt == 'adam':
+                        g = self.adam(p, g, updates)
+                    if self.momentum > 0:
+                        velocity = theano.shared(p.get_value(borrow=False) * 0., borrow=True)
+                        velocity2 = self.momentum * velocity - np.float32(self.learning_rate) * (g + self.lmbd * p)
+                        updates[velocity] = velocity2
+                        updates[p] = p + velocity2
+                    else:
+                        updates[p] = p * np.float32(1.0 - self.learning_rate * self.lmbd) - np.float32(self.learning_rate) * g
         for i in range(len(sgrads)):
             g = sgrads[i]
             fullP = full_params[i]
-            sample_idx = sidxs[i]
-            sparam = sampled_params[i]
-            if self.adapt == 'adagrad':
-                g = self.adagrad(fullP, g, updates, sample_idx)
-            elif self.adapt == 'rmsprop':
-                g = self.rmsprop(fullP, g, updates, sample_idx)
-            elif self.adapt == 'adadelta':
-                g = self.adadelta(fullP, g, updates, sample_idx)
-            elif self.adapt == 'adam':
-                g = self.adam(fullP, g, updates, sample_idx)
-            if self.lmbd > 0:
-                delta = np.float32(self.learning_rate) * (g + self.lmbd * sparam)
-            else:
-                delta = np.float32(self.learning_rate) * g
-            if self.momentum > 0:
-                velocity = theano.shared(fullP.get_value(borrow=False) * 0., borrow=True)
-                vs = velocity[sample_idx]
-                velocity2 = self.momentum * vs - delta
-                updates[velocity] = T.set_subtensor(vs, velocity2)
-                updates[fullP] = T.inc_subtensor(sparam, velocity2)
-            else:
-                updates[fullP] = T.inc_subtensor(sparam, - delta)
+            if fullP.name != 'E':
+                sample_idx = sidxs[i]
+                sparam = sampled_params[i]
+                if self.adapt == 'adagrad':
+                    g = self.adagrad(fullP, g, updates, sample_idx)
+                elif self.adapt == 'rmsprop':
+                    g = self.rmsprop(fullP, g, updates, sample_idx)
+                elif self.adapt == 'adadelta':
+                    g = self.adadelta(fullP, g, updates, sample_idx)
+                elif self.adapt == 'adam':
+                    g = self.adam(fullP, g, updates, sample_idx)
+                if self.lmbd > 0:
+                    delta = np.float32(self.learning_rate) * (g + self.lmbd * sparam)
+                else:
+                    delta = np.float32(self.learning_rate) * g
+                if self.momentum > 0:
+                    velocity = theano.shared(fullP.get_value(borrow=False) * 0., borrow=True)
+                    vs = velocity[sample_idx]
+                    velocity2 = self.momentum * vs - delta
+                    updates[velocity] = T.set_subtensor(vs, velocity2)
+                    updates[fullP] = T.inc_subtensor(sparam, velocity2)
+                else:
+                    updates[fullP] = T.inc_subtensor(sparam, - delta)
         return updates
     def model(self, X, H, M, R=None, Y=None, drop_p_hidden=0.0, drop_p_embed=0.0, predict=False):
         sparams, full_params, sidxs = [], [], []
