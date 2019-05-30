@@ -86,7 +86,7 @@ class GRU4Rec:
                  n_epochs=10, batch_size=32, dropout_p_hidden=0.0, dropout_p_embed=0.0, learning_rate=0.1, momentum=0.0, lmbd=0.0, embedding=0, n_sample=2048, sample_alpha=0.75, smoothing=0.0, constrained_embedding=False,
                  adapt='adagrad', adapt_params=[], grad_cap=0.0, bpreg=1.0,
                  sigma=0.0, init_as_normal=False, train_random_order=False, time_sort=True,
-                 session_key='SessionId', item_key='ItemId', time_key='Time'):
+                 session_key='SessionId', item_key='ItemId', time_key='Time', embedding_matrix=None):
         self.layers = layers
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -105,6 +105,7 @@ class GRU4Rec:
         self.train_random_order = train_random_order
         self.lmbd = lmbd
         self.embedding = embedding
+        self.embedding_matrix = embedding_matrix
         self.constrained_embedding = constrained_embedding
         self.time_sort = time_sort
         self.adapt = adapt
@@ -253,6 +254,10 @@ class GRU4Rec:
         # init of embedding [fuszti]
         if self.constrained_embedding:
             n_features = self.layers[-1]
+        elif self.embedding == -1:
+            E = np.asarray(self.embedding_matrix, dtype=theano.config.floatX)
+            self.E=theano.shared(E, borrow=True, name='E')
+            n_features = 300
         elif self.embedding:
             self.E = self.init_weights((self.n_items, self.embedding), name='E')
             n_features = self.embedding
